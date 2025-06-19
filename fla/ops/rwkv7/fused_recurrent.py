@@ -9,7 +9,8 @@ import triton.language as tl
 
 from fla.ops.generalized_delta_rule import fused_recurrent_dplr_delta_rule
 from fla.ops.utils.op import exp
-from fla.utils import input_guard, use_cuda_graph
+from fla.utils import input_guard, use_cuda_graph, is_amd
+NUM_WARPS_AUTOTUNE = [2, 4, 8, 16] if is_amd else [2, 4, 8, 16, 32]
 
 
 @triton.heuristics({
@@ -21,7 +22,7 @@ from fla.utils import input_guard, use_cuda_graph
     configs=[
         triton.Config({'BV': BV}, num_warps=num_warps, num_stages=num_stages)
         for BV in [16, 32, 64]
-        for num_warps in [2, 4, 8, 16, 32]
+        for num_warps in NUM_WARPS_AUTOTUNE
         for num_stages in [2, 3, 4]
     ],
     key=['BK'],

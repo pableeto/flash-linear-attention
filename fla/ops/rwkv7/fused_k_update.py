@@ -4,8 +4,8 @@ import torch
 import triton
 import triton.language as tl
 
-from fla.utils import autocast_custom_bwd, autocast_custom_fwd, input_guard
-
+from fla.utils import autocast_custom_bwd, autocast_custom_fwd, input_guard, is_amd
+NUM_WARPS_AUTOTUNE = [2, 4, 8, 16] if is_amd else [2, 4, 8, 16, 32]
 
 @torch.jit.script
 def k_update_ref(k: torch.Tensor, a: torch.Tensor, ka: torch.Tensor) -> torch.Tensor:
@@ -22,7 +22,7 @@ def k_update_ref(k: torch.Tensor, a: torch.Tensor, ka: torch.Tensor) -> torch.Te
     configs=[
         triton.Config({'BLOCK_SIZE': block_size}, num_warps=num_warps)
         for block_size in [1024, 2048, 4096, 8192]
-        for num_warps in [2, 4, 8, 16, 32]
+        for num_warps in NUM_WARPS_AUTOTUNE
     ],
     key=['hidden_dim'],
 )
@@ -58,7 +58,7 @@ def k_update_fwd_kernel(
     configs=[
         triton.Config({'BLOCK_SIZE': block_size}, num_warps=num_warps)
         for block_size in [1024, 2048, 4096, 8192]
-        for num_warps in [2, 4, 8, 16, 32]
+        for num_warps in NUM_WARPS_AUTOTUNE
     ],
     key=['hidden_dim'],
 )
